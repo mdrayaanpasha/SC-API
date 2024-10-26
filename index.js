@@ -3,14 +3,12 @@ import multer from "multer";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from 'url';
-
 import fs from "fs"
-
 import nodemailer from "nodemailer"
 import { ppid } from "process";
 
 import mongoose from "mongoose";
-import { Server } from "http"; // Import Server from "http" module
+import { Server } from "http"; 
 import dotenv from 'dotenv';
 
 
@@ -22,7 +20,6 @@ dotenv.config();
 
 
 //this is mongo stuff!
-
 const dburl =process.env.MONGO_URI;
 
 const connectionParams = {
@@ -34,12 +31,13 @@ mongoose.connect(dburl,connectionParams)
 .then(()=>console.log("connected to DB"))
 .catch(err=>console.log(err))
 
-import SofaModel from "./sofa.js";
-import userModel from "./user.js";
-import cartModel from "./cart.js";
-import ShoeRackModel from "./shoeRacks.js";
-import DashBoardModel from "./Dashboard.js";
-import CancelModel from "./cancelModel.js";
+import SofaModel from "./dbModels/sofa.js";
+import userModel from "./dbModels/user.js";
+import cartModel from "./dbModels/cart.js";
+import ShoeRackModel from "./dbModels/shoeRacks.js";
+import DashBoardModel from "./dbModels/Dashboard.js";
+import CancelModel from "./dbModels/cancelModel.js";
+
 
 
 
@@ -497,6 +495,20 @@ app.get("/test",async(req,res)=>{
 app.get("/cabSRget",async(req,res)=>{
     try {
         const D = await ShoeRackModel.find({"Sub Category":"Shoe Cabinet"});
+
+app.get("/cabSRget",async(req,res)=>{//+
+    try {//+
+        // Fetch shoe cabinets from the database//+
+        const D = await ShoeRackModel.find({"Sub Category":"Shoe Cabinet"});//+
+//+
+        // Send the retrieved data and a success message//+
+        res.send({Data:D,message:"ok"})//+
+    } catch (error) {//+
+        // Log the error and send a failure message//+
+        console.log(error)//+
+        res.send({message:"notok"})//+
+    }//+
+})//+
         res.send({Data:D,message:"ok"})
     } catch (error) {
         console.log(error)
