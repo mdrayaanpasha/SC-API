@@ -7,7 +7,8 @@ import {
   fileURLToPath
 }
 from 'url';
-import fs from "fs" import nodemailer from "nodemailer"
+import fs from "fs"
+import nodemailer from "nodemailer"
 import {
   ppid
 }
@@ -18,6 +19,7 @@ import {
 }
 from "http";
 import dotenv from 'dotenv';
+dotenv.config();
 //Mongo DB Config.
 const dburl = process.env.MONGO_URI;
 const connectionParams = {
@@ -95,7 +97,8 @@ app.get(
   async(req, res) => {
     try {
       // Call function to get sofas from database
-      const sofas = await SofaModel.find()res.send(
+      const sofas = await SofaModel.find();
+      res.send(
         {
           S: sofas,
           message: 'ok'
@@ -197,7 +200,8 @@ app.post(
       );
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "there is an error in backend"
         }
@@ -276,7 +280,8 @@ app.post(
       }
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "not ok"
         }
@@ -301,7 +306,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -326,7 +332,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -351,7 +358,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -376,7 +384,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -401,7 +410,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -514,8 +524,9 @@ app.post(
 app.post(
   "/login",
   async(req, res) => {
-    const E = req.body.Email const
-    P = req.body.Password try {
+    const E = req.body.Email 
+    const P = req.body.Password 
+    try {
       const data = await userModel.find(
         {
           email: E
@@ -555,7 +566,8 @@ app.post(
 app.post(
   "/userInfo",
   async(req, res) => {
-    const E = req.body.Email try {
+    const E = req.body.Email 
+    try {
       const data = await userModel.find(
         {
           email: E
@@ -569,7 +581,8 @@ app.post(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: false
         }
@@ -592,9 +605,9 @@ app.post(
         }
       );
       if(D.length > 0) {
-        const Existing = D [0]
-        .Skus;
-        let there = false for(let i = 0; i < Existing.length; i++) {
+        const Existing = D[0].Skus;
+        let there = false 
+        for(let i = 0; i < Existing.length; i++) {
           if(Existing [i] === req.body.Sku) {
             there = true;
             break
@@ -772,8 +785,9 @@ app.post(
 app.post(
   "/cartUpdate",
   async(req, res) => {
-    const email = req.body.Email const
-    sku = req.body.Arr try {
+    const email = req.body.Email 
+    const sku = req.body.Arr 
+    try {
       await cartModel.updateOne(
         {
           Email: email
@@ -805,7 +819,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "not ok"
         }
@@ -899,7 +914,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -924,7 +940,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -949,7 +966,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -974,7 +992,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: "notok"
         }
@@ -1111,7 +1130,8 @@ app.post(
     data.Admin = true;
     try {
       await CancelModel.create(data);
-      let i = data._id await DashBoardModel.deleteOne(
+      let i = data._id 
+      await DashBoardModel.deleteOne(
         {
           _id: i
         }
@@ -1147,7 +1167,8 @@ app.get(
       )
     }
     catch(error) {
-      console.log(error)res.send(
+      console.log(error)
+      res.send(
         {
           message: false
         }
