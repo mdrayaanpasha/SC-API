@@ -21,14 +21,29 @@ from "http";
 import dotenv from 'dotenv';
 dotenv.config();
 //Mongo DB Config.
-const dburl = process.env.MONGO_URI;
-const connectionParams = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}
-mongoose.connect(dburl, connectionParams).then(() => console.log("connected to DB")).catch(
-  err => console.log(err)
-)
+const MONGO_URI = process.env.MONGO_URI;
+
+const PORT = process.env.PORT;
+// --- Function to Start the Server ---
+const startServer = async () => {
+  try {
+    // 1. Connect to the database and WAIT for it to succeed
+    await mongoose.connect(MONGO_URI);
+    console.log("Successfully connected to the database! ✅");
+
+    // 2. Only after a successful connection, start the Express server
+    app.listen(PORT, () => {
+      console.log(`Server is running on port: ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to connect to the database:", error);
+    process.exit(1); // Exit the app if the connection fails
+  }
+};
+
+// --- Call the function to start everything ---
+startServer();
+
 //mongoDB models import.
 import SofaModel from "./dbModels/sofa.js";
 import userModel from "./dbModels/user.js";
@@ -36,6 +51,8 @@ import cartModel from "./dbModels/cart.js";
 import ShoeRackModel from "./dbModels/shoeRacks.js";
 import DashBoardModel from "./dbModels/Dashboard.js";
 import CancelModel from "./dbModels/cancelModel.js";
+import productUrl from "./dbModels/productUrl.js";
+
 //middle ware.
 const app = express();
 app.use(cors());
@@ -118,125 +135,101 @@ app.get(
 /*
 this API is to get all sofa images!!
 */
-app.post(
-  '/getS',
-  async(req, res) => {
-    const folderName = req.body.Sku;
-    let data;
-    try {
-      data = await SofaModel.findOne(
-        {
-          Sku: folderName
-        }
-      );
+
+
+app.post('/getS', async (req, res) => {
+
+  try {
+
+    const sku = req.body.Sku;
+
+
+    // 1. Check if SKU was provided in the request
+
+    if (!sku) {
+
+      return res.status(400).send({ message: "Product SKU is required." });
+
     }
-    catch(error) {
-      console.log(error);
-      // You may want to handle the error more gracefully, e.g., by returning an error response
-      return res.status(500).send("An error occurred while fetching data.");
+
+
+    // 2. Fetch both the sofa details and its image URLs from the database at the same time
+
+    const [sofaDetails, imageDoc] = await Promise.all([
+
+      SofaModel.findOne({ Sku: sku }),
+
+      productUrl.findOne({ "Product ID": sku }) // Correctly query using 'productId'
+
+    ]);
+  
+
+
+    // 3. Check if we found a product
+
+    if (!sofaDetails) {
+
+      return res.status(404).send({ message: `No data found for SKU: ${sku}` });
+
     }
-    if(!data) {
-      // Handle the case where no data is found
-      return res.status(404).send("No data found for the given SKU.");
-    }
-    const folderPath = path.join(__dirname, `public/img/sofa/${data["Sub Category"]}/${folderName}`);
-    // Construct the full path to the folder
-    const filePaths = [];
-    fs.readdir(
-      folderPath,
-      (err, files) => {
-        if(err) {
-          console.error('Error reading directory:', err);
-        }
-        // Log the file names to the console
-        files.forEach(
-          file => {
-            const filePath = path.join(folderPath, file);
-            const isFile = fs.statSync(filePath).isFile();
-            if(isFile) {
-              filePaths.push(file);
-            }
-          }
-        );
-        // console.log(filePaths);
-      }
-    );
-    try {
-      const D = await SofaModel.find(
-        {
-          Sku: folderName
-        }
-      );
-      // Use folderName instead of undefined variable s
-      res.send(
-        {
-          message: "ok",
-          sofa: D,
-          files: filePaths
-        }
-      );
-    }
-    catch(error) {
-      console.error(error);
-      res.status(500).send(
-        {
-          message: "not ok"
-        }
-      );
-      // Send appropriate error response
-    }
+
+
+    // 4. Send a clean response with product data and the image URLs
+
+    res.status(200).send({
+
+      message: "ok",
+
+      sofa: sofaDetails,
+
+      // If imageDoc exists, use its urls array; otherwise, return an empty array
+
+      images: imageDoc ? imageDoc["Image URLs"] : []
+
+    });
+
+    
+
+  } catch (error) {
+
+    console.error("Error in /getS endpoint:", error);
+
+    res.status(500).send({ message: "An internal server error occurred." });
+
   }
-);
-app.post(
-  "/sofaimg",
-  async(req, res) => {
-    const folderName = req.body.sku;
-    let data;
-    try {
-      data = await SofaModel.find(
-        {
-          Sku: folderName
-        }
-      );
+
+});
+
+
+
+app.post('/sofaimg', async (req, res) => {
+  try {
+    const sku = req.body.sku; // Get SKU from request body
+
+    // 1. Check if SKU was provided
+    if (!sku) {
+      return res.status(400).send({ message: "Product SKU is required." });
     }
-    catch(error) {
-      console.log(error)
-      res.send(
-        {
-          message: "there is an error in backend"
-        }
-      )
-    }
-    const folderPath = path.join(__dirname, `public/img/sofa/${data[0]['Sub Category']}/${folderName}`);
-    fs.readdir(
-      folderPath,
-      (err, files) => {
-        if(err) {
-          console.error('Error reading directory:', err);
-          return;
-          // Add this line to exit the function if there is an error
-        }
-        const filePaths = [];
-        files.forEach(
-          file => {
-            const filePath = path.join(folderPath, file);
-            const isFile = fs.statSync(filePath).isFile();
-            if(isFile) {
-              filePaths.push(file);
-            }
-          }
-        );
-        res.send(
-          {
-            message: "ok",
-            names: filePaths,
-            D: data [0]
-          }
-        )
-      }
-    );
+
+    // 2. Fetch product details and image URLs from the database at the same time
+    const imageDoc = await productUrl.findOne({ "Product ID": sku })
+  
+
+
+
+    // 3. Send the response
+    res.status(200).send({
+      message: "ok",
+      // If imageDoc exists, use its "Image URLs" array; otherwise, return an empty array
+      images: imageDoc ? imageDoc["Image URLs"] : []
+    });
+
+  } catch (error) {
+    console.error("Error in /sofaimg endpoint:", error);
+    res.status(500).send({ message: "An internal server error occurred." });
   }
-);
+});
+
 //this route is the one where we take data for products below the product order page.
 app.post(
   "/otherGetData",
@@ -1176,9 +1169,3 @@ app.get(
     }
   }
 )
-// =================================================================================================================================================================================================
-//PORT FOR LOCAL SERVER!! or LOCALHOST.
-app.listen(3000, () => {
-  console.log('Server is running on port 3000'); 
-}
-);
