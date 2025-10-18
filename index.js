@@ -448,24 +448,53 @@ app.post(
           }
         );
         try {
-          const info = await transporter.sendMail(
-            {
-              from: "Solace Craft <noreply@solacecraft.com>",
-              to: req.body.email,
-              subject: "Welcome to Solace Craft - Your Registration OTP",
-              text: "Dear Valued User,",
-              html: `
-                      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                        <h2>Welcome to Solace Craft!</h2>
-                        <p>Thank you for choosing Solace Craft for your journey. We are thrilled to have you on board!</p>
-                        <p>Your One-Time Password (OTP) for registration is:</p>
-                        <h3 style="color: #007BFF;"><b>${randomNumber}</b></h3>
-                        <p>Please use this OTP to complete your registration. If you did not request this, please ignore this email.</p>
-                        <p>Best Regards,<br>The Solace Craft Team</p>
-                      </div>
-                    `,
-            }
-          );
+          const info = await transporter.sendMail({
+    from: '"Solace Craft" <noreply@solacecraft.com>',
+    to: req.body.email,
+    subject: `Your Key to Solace Craft, ${req.body.name}`,
+    html: `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+      <style>
+        body { margin: 0; padding: 0; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+      </style>
+    </head>
+    <body style="margin: 0; padding: 0; width: 100%; background-color: #0a0a0a;">
+      <div style="background-image: radial-gradient(circle at top, #1a1a1a 0%, #0a0a0a 100%); color: #f3f3f3; padding: 40px 20px; text-align: center;" class="font-sans">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #111111; border: 1px solid #27272a; border-radius: 24px; overflow: hidden; border-top: 4px solid #ca8a04;">
+              <div style="padding: 40px 32px;">
+                  <h1 style="letter-spacing: 0.1em; color: #ffffff; margin: 0;" class="font-serif">SOLACE CRAFT</h1>
+                  <h2 style="font-size: 28px; color: #ffffff; margin: 40px 0 16px 0; font-weight: 700;" class="font-serif">Welcome, ${req.body.name.split(' ')[0]}.</h2>
+                  <p style="font-size: 16px; color: #a1a1aa; line-height: 1.6; margin: 0;">Your journey into timeless design begins now. To unlock your account and explore our curated collections, please use the verification code below.</p>
+                  <div style="margin: 32px 0;">
+                      <p style="font-size: 48px; font-weight: 700; letter-spacing: 0.5em; color: #ffffff; margin: 0; background-color: #0a0a0a; padding: 20px; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">${randomNumber}</p>
+                  </div>
+                  <p style="font-size: 14px; color: #a1a1aa; line-height: 1.6;">
+                      This code is valid for the next 10 minutes.
+                  </p>
+                  <p style="margin-top: 32px; font-size: 12px; color: #71717a;">
+                      If you did not initiate this request, please disregard this email.
+                  </p>
+              </div>
+              <div style="background-color: #18181b; padding: 20px; font-size: 12px; color: #71717a;">
+                  &copy; ${new Date().getFullYear()} Solace Craft. All Rights Reserved.
+              </div>
+          </div>
+      </div>
+    </body>
+    </html>
+    `,
+});
+
+
         }
         catch(error) {
           console.error("Error occurred:", error);
@@ -473,7 +502,6 @@ app.post(
         }
         res.send(
           {
-            otp: randomNumber,
             message: "notthere"
           }
         );

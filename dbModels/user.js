@@ -8,6 +8,7 @@ const Sch = new mongoose.Schema({
     phoneNo:Number,
     Adress:String,
     Password:String,
+
 })
 
 const userModel = mongoose.model("authenticationModel",Sch)
