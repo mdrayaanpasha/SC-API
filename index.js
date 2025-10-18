@@ -821,75 +821,64 @@ app.get(
     }
   }
 )
-app.post(
-  '/SRget',
-  async(req, res) => {
-    const folderName = req.body.Sku;
-    let data;
+
+app.post('/SRget', async (req, res) => {
+  try {
+    const sku = req.body.Sku;
+
+    // 1. Validate input
+    if (!sku) {
+      return res.status(400).send({ message: "Product SKU is required." });
+    }
+
+    // 2. Fetch ShoeRack details and optionally a URL doc (if you have one)
+    const [shoeDetails, imageDoc] = await Promise.all([
+      ShoeRackModel.findOne({ Sku: sku }),
+      productUrl.findOne({ "Product ID": sku }) // optional collection for URLs
+    ]);
+
+    // 3. Check if product exists
+    if (!shoeDetails) {
+      return res.status(404).send({ message: `No data found for SKU: ${sku}` });
+    }
+
+    // 4. Read image files from folder
+    const folderPath = path.join(__dirname, `public/img/SR/${shoeDetails["Sub Category"]}/${sku}`);
+    let imageFiles = [];
     try {
-      data = await ShoeRackModel.findOne(
-        {
-          Sku: folderName
-        }
+      const files = await fs.readdir(folderPath);
+      // Only include actual files (ignore subfolders)
+      imageFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = path.join(folderPath, file);
+          const stat = await fs.stat(filePath);
+          return stat.isFile() ? file : null;
+        })
       );
-      console.log(data)
+      // Remove nulls
+      imageFiles = imageFiles.filter(Boolean);
+    } catch (err) {
+      console.warn("Error reading image folder:", err);
+      imageFiles = [];
     }
-    catch(error) {
-      console.log(error);
-      // You may want to handle the error more gracefully, e.g., by returning an error response
-      return res.status(500).send("An error occurred while fetching data.");
-    }
-    if(!data) {
-      // Handle the case where no data is found
-      return res.status(404).send("No data found for the given SKU.");
-    }
-    const folderPath = path.join(__dirname, `public/img/SR/${data["Sub Category"]}/${folderName}`);
-    // Construct the full path to the folder
-    const filePaths = [];
-    fs.readdir(
-      folderPath,
-      (err, files) => {
-        if(err) {
-          console.error('Error reading directory:', err);
-        }
-        // Log the file names to the console
-        files.forEach(
-          file => {
-            const filePath = path.join(folderPath, file);
-            const isFile = fs.statSync(filePath).isFile();
-            if(isFile) {
-              filePaths.push(file);
-            }
-          }
-        );
-      }
-    );
-    try {
-      const D = await ShoeRackModel.find(
-        {
-          Sku: folderName
-        }
-      );
-      // Use folderName instead of undefined variable s
-      res.send(
-        {
-          message: "ok",
-          sofa: D,
-          files: filePaths
-        }
-      );
-    }
-    catch(error) {
-      console.error(error);
-      res.status(500).send(
-        {
-          message: "not ok"
-        }
-      );
-      // Send appropriate error response
-    }
+
+
+
+    // 6. Send response
+    res.status(200).send({
+      message: "ok",
+      shoe: shoeDetails,
+      images: imageDoc ? imageDoc["Image URLs"] : imageUrls // prefer DB URLs if exist
+    });
+
+  } catch (error) {
+    console.error("Error in /SRget endpoint:", error);
+    res.status(500).send({ message: "An internal server error occurred." });
   }
-);
+});
+
+
+
 app.get(
   "/seatSRget",
   async(req, res) => {
