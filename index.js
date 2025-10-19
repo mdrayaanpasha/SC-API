@@ -767,6 +767,7 @@ app.post(
 
 //============================================================================================================================================================================================
 const extractEmailFromToken = (token) => {
+  const JWT_SECRET=process.env.JWT_SECRET;
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         // Assuming your token payload contains an 'email' field
@@ -824,6 +825,8 @@ app.post(
   "/CartGet",
   async(req, res) => {
     const { token } = req.body;
+    console.log(token);
+
 
     if (!token) return res.status(401).send({ message: "Authentication token required." });
 
