@@ -721,30 +721,49 @@ app.post("/login", async (req, res) => {
 app.post(
   "/userInfo",
   async(req, res) => {
-    const E = req.body.Email 
+    // 1. Get the token from the request body (sent by the frontend)
+    const { token } = req.body; 
+
+    if (!token) {
+        return res.status(401).json({ message: "Token is required for user information." });
+    }
+
     try {
-      const data = await userModel.find(
-        {
-          email: E
-        }
-      )
-      res.send(
+      // 2. Verify the token using your secret key
+      const decoded = jwt.verify(
+        token, 
+        process.env.JWT_SECRET || "defaultsecret"
+      );
+      
+      // 3. Find the user by the ID embedded in the token
+      // We use select() to exclude sensitive fields from the response
+      const user = await userModel.findById(decoded.id).select('-Password -token -verifyToken');
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      // 4. Respond with the user data
+      res.status(200).json(
         {
           message: true,
-          D: data
+          D: user // Sending the user object directly
         }
       )
     }
     catch(error) {
-      console.log(error)
-      res.send(
+      // Handles invalid, expired, or malformed tokens
+      console.error("Token verification failed:", error);
+      res.status(401).json(
         {
-          message: false
+          message: false,
+          error: "Invalid or expired token."
         }
       )
     }
   }
 )
+
 //============================================================================================================================================================================================
 // # CART & ORDER - ROUTING.
 app.post(
