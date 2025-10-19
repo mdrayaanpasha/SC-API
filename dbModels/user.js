@@ -8,6 +8,9 @@ const Sch = new mongoose.Schema({
     phoneNo:Number,
     Adress:String,
     Password:String,
+    verifiedStatus:Boolean,
+    token:String
+    
 
 })
 

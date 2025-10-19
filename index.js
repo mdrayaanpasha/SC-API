@@ -545,6 +545,122 @@ app.post(
     }
   }
 )
+
+app.post("/register", async (req, res) => {
+  try {
+    const { email, name, password, address } = req.body;
+
+    // Validate input
+    if (!email || !name || !password || !address) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    // Check if user exists
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists." });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const newUser = await userModel.create({
+      email,
+      name,
+      Password: hashedPassword,
+      Adress:address,
+      verifiedStatus:false
+      
+    });
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email },
+      process.env.JWT_SECRET || "defaultsecret",
+      { expiresIn: "7d" }
+    );
+
+    // Save token in user document
+    newUser.token = token;
+    await newUser.save();
+
+    // Send welcome email (optional)
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+          user: "mohdrayaanpasha@gmail.com",
+              // your Gmail email
+              pass: "dotv epql rczc xeap",
+      },
+    });
+
+    const mailOptions = {
+      from: '"Solace Craft" <noreply@solacecraft.com>',
+      to: email,
+      subject: `Welcome to Solace Craft, ${name}`,
+      html: `
+      <div style="font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f3f3f3; padding: 40px;">
+        <h1>Welcome, ${name.split(" ")[0]}!</h1>
+        <p>Your Solace Craft account has been created successfully.</p>
+        <a href="https://solacecraft.co.in/verify/${token}">Click To Verify</a>
+      </div>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (mailError) {
+      console.error("Email send error:", mailError);
+      // Don't fail registration if email fails
+    }
+
+    // Respond success
+    res.status(201).json({
+      message: "User registered successfully.",
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+app.get("/verify/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "defaultsecret");
+
+    // Find user
+    const user = await userModel.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (user.isVerified)
+      return res.status(400).json({ message: "User already verified." });
+
+    // Mark as verified
+    user.isVerified = true;
+    user.verifyToken = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Email verified successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ message: "Invalid or expired token." });
+  }
+});
+
+
+
 app.post(
   "/login",
   async(req, res) => {
