@@ -551,7 +551,7 @@ app.post(
 
 app.post("/register", async (req, res) => {
   try {
-    const { email, name, password, address } = req.body;
+    const { email, name, password, address, phoneNo } = req.body;
 
     // Validate input
     if (!email || !name || !password || !address) {
@@ -573,7 +573,8 @@ app.post("/register", async (req, res) => {
       name,
       Password: hashedPassword,
       Adress:address,
-      verifiedStatus:false
+      verifiedStatus:false,
+      phoneNo
       
     });
 
