@@ -686,7 +686,7 @@ app.post("/login", async (req, res) => {
     }
 
     // 🔒 STEP 2: CHECK VERIFICATION STATUS
-    if (!user.isVerified) {
+    if (!user.verifiedStatus) {
       return res.status(403).json({ 
         message: "Account not verified. Please check your email for the verification link or request a new one." 
       });
