@@ -1,6 +1,7 @@
 //boring modules to import!!
 import express from "express";
 import multer from "multer";
+import cors from "cors";
 import path from "path";
 import {
   fileURLToPath
@@ -12,7 +13,8 @@ import {
   ppid
 }
 from "process";
-
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import {
   Server
@@ -55,13 +57,7 @@ import productUrl from "./dbModels/productUrl.js";
 
 //middle ware.
 const app = express();
-import cors from "cors";
-
-app.use(cors({
-  origin: "*", // allow requests from any origin (for dev/testing)
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(cors());
 app.use(express.json());
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -72,12 +68,6 @@ app.use(
     path.join(__dirname, 'public')
   )
 );
-// Catch unhandled errors
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({ message: "Internal server error." });
-});
-
 const storage = multer.diskStorage(
   {
     destination:(req, file, cb) => {
@@ -557,8 +547,6 @@ app.post(
     }
   }
 )
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 
 app.post("/register", async (req, res) => {
   try {
