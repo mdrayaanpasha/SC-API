@@ -664,48 +664,60 @@ app.get("/verify/:token", async (req, res) => {
 
 
 
-app.post(
-  "/login",
-  async(req, res) => {
-    const E = req.body.Email 
-    const P = req.body.Password 
-    try {
-      const data = await userModel.find(
-        {
-          email: E
-        }
-      );
-      if(data.length > 0) {
-        if(
-          data [0]
-          .Password === P
-        )
-        {
-          res.send(
-            {
-              message: "Pass"
-            }
-          )
-        }
-        else {
-          res.send(
-            {
-              message: "Fail"
-            }
-          )
-        }
-      }
-      else {
-        res.send(
-          {
-            message: "not"
-          }
-        )
-      }
+app.post("/login", async (req, res) => {
+  try {
+    // Note: Assuming the frontend sends Email and Password with these specific casings
+    const { Email, Password } = req.body; 
+
+    // Find user by email
+    // Use findOne for better performance since email should be unique
+    const user = await userModel.findOne({ email: Email });
+    if (!user) {
+      // Intentional generic message for security (prevents enumeration attack)
+      return res.status(401).json({ message: "Invalid credentials." });
     }
-    catch(error){}
+
+    // 🔑 STEP 1: COMPARE HASHED PASSWORD
+    // CRITICAL: Use bcrypt.compare() to check the plain password against the stored hash
+    const isMatch = await bcrypt.compare(Password, user.Password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    // 🔒 STEP 2: CHECK VERIFICATION STATUS
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        message: "Account not verified. Please check your email for the verification link or request a new one." 
+      });
+    }
+
+    // STEP 3: Generate new JWT for session
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET || "defaultsecret",
+      { expiresIn: "7d" }
+    );
+    
+    // Success response
+    res.status(200).json({
+      message: "Login successful!",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        isVerified: user.isVerified
+      },
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
   }
-)
+});
+
+
 app.post(
   "/userInfo",
   async(req, res) => {
