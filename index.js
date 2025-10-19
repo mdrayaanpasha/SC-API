@@ -647,11 +647,11 @@ app.get("/verify/:token", async (req, res) => {
     const user = await userModel.findById(decoded.id);
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    if (user.isVerified)
+    if (user.verifiedStatus)
       return res.status(400).json({ message: "User already verified." });
 
     // Mark as verified
-    user.isVerified = true;
+    user.verifiedStatus = true;
     user.verifyToken = undefined;
     await user.save();
 
