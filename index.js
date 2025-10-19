@@ -766,219 +766,166 @@ app.post(
 )
 
 //============================================================================================================================================================================================
-// # CART & ORDER - ROUTING.
+const extractEmailFromToken = (token) => {
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // Assuming your token payload contains an 'email' field
+        return decoded.email; 
+    } catch (error) {
+        // Logs token errors (expired, invalid signature, malformed)
+        console.error("JWT Verification failed:", error.message);
+        return null;
+    }
+};
+
+// 1. ADD ITEM TO CART
 app.post(
   "/addcart",
   async(req, res) => {
-    const E = req.body.Email;
-    let Arr = [];
-    // Initialize outside the try block
+    const { token, Sku: sku } = req.body;
+    
+    if (!token) return res.status(401).send({ message: "Authentication token required." });
+    
+    const E = extractEmailFromToken(token);
+    if (!E) return res.status(401).send({ message: "Invalid or expired token." });
+
     try {
-      const D = await cartModel.find(
-        {
-          Email: E
+      const D = await cartModel.findOne({ Email: E }); 
+      
+      if(D) {
+        const ExistingSkus = D.Skus || [];
+        const skuExists = ExistingSkus.includes(sku);
+        
+        if(!skuExists) {
+          const mergedSkus = [...ExistingSkus, sku];
+          await cartModel.updateOne({ Email: E }, { Skus: mergedSkus });
+          res.send({ message: "done" });
+        } else {
+          res.send({ message: "there" }); // Item already in cart
         }
-      );
-      if(D.length > 0) {
-        const Existing = D[0].Skus;
-        let there = false 
-        for(let i = 0; i < Existing.length; i++) {
-          if(Existing [i] === req.body.Sku) {
-            there = true;
-            break
-          }
-        }
-        if(!there) {
-          const mergedSkus = [...Existing, req.body.Sku];
-          await cartModel.updateOne(
-            {
-              Email: E
-            },
-            {
-              Skus: mergedSkus
-            }
-          );
-          res.send(
-            {
-              message: "done"
-            }
-          )
-        }
-        else {
-          res.send(
-            {
-              message: "there"
-            }
-          )
-        }
+      } else {
+        // User does not have a cart, create one
+        await cartModel.create({
+          Email: E,
+          Skus: [sku],
+        });
+        res.send({ message: "done" });
       }
-      else {
-        Arr.push(req.body.Sku);
-        await cartModel.create(
-          {
-            Email: E,
-            Skus: Arr,
-          }
-        );
-        res.send(
-          {
-            message: "done"
-          }
-        )
-      }
-    }
-    catch(error) {
+    } catch(error) {
       console.error("Error adding item to cart:", error);
-      res.status(500).send("Internal server error.");
+      res.status(500).send({ message: "Internal server error." });
     }
   }
 );
+
+
+// 2. GET CART CONTENTS
 app.post(
   "/CartGet",
   async(req, res) => {
-    const E = req.body.Email;
+    const { token } = req.body;
+
+    if (!token) return res.status(401).send({ message: "Authentication token required." });
+
+    const E = extractEmailFromToken(token);
+    if (!E) return res.status(401).send({ message: "Invalid or expired token." });
+    
     try {
-      const D = await cartModel.find(
-        {
-          Email: E
-        }
-      )
-      res.send(
-        {
-          message: "ok",
-          Da: D [0]
-        }
-      )
-    }
-    catch(error) {
-      res.send(
-        {
-          message: "notok"
-        }
-      )
-      console.log(error)
+      const D = await cartModel.findOne({ Email: E });
+      if (D) {
+          res.send({ message: "ok", Da: D });
+      } else {
+          // Send a default empty cart object if no document is found
+          res.send({ message: "ok", Da: { Skus: [] } }); 
+      }
+    } catch(error) {
+      console.error("Error fetching cart:", error);
+      res.status(500).send({ message: "notok", error: "Internal server error." });
     }
   }
-)
+);
+
+// 3. GET ITEM DETAILS FOR CART (SKU-based, no token required)
 app.post(
   "/Item4Cart",
   async(req, res) => {
     const S = req.body.Sku;
+    
     try {
-      const D = await SofaModel.find(
-        {
-          Sku: S
-        }
-      );
-      if(D.length > 0) {
-        res.send(
-          {
-            Message: "done",
-            Da: D [0]
-          }
-        )
+      // Try SofaModel first
+      const D = await SofaModel.findOne({ Sku: S });
+      if(D) {
+        return res.send({ Message: "done", Da: D });
       }
-      else {
-        const a = await ShoeRackModel.find(
-          {
-            Sku: S
-          }
-        );
-        if(a.length > 0) {
-          res.send(
-            {
-              Message: "done",
-              Da: a [0]
-            }
-          )
-        }
-        else {
-          res.send(
-            {
-              Message: "item not found!"
-            }
-          )
-          console.log("item not found!")
-        }
+      
+      // If not found, try ShoeRackModel
+      const a = await ShoeRackModel.findOne({ Sku: S });
+      if(a) {
+        return res.send({ Message: "done", Da: a });
       }
-      // console.log(D)
-    }
-    catch(error) {
-      console.log(error)
-    }
-  }
-)
-app.post(
-  "/myordersget",
-  async(req, res) => {
-    const email = req.body.Email;
-    // Use a consistent naming convention (lowercase `id`)
-    if(!email) {
-      return res.status(400).send(
-        {
-          message: "No customer ID provided"
-        }
-      );
-    }
-    try {
-      const orders = await DashBoardModel.find(
-        {
-          "Costumer Email": email
-        }
-      );
-      // Assuming the model field name is correct
-      if(orders.length > 0) {
-        res.send(
-          {
-            Orders: orders,
-            message: true
-          }
-        )
-      }
-      else {
-        res.send(
-          {
-            Orders: [],
-            message: true
-          }
-        );
-      }
-      // Explicitly return an empty array if no orders are found
-    }
-    catch(error) {
-      console.error("Error fetching orders:", error);
-      // More descriptive logging
-      res.status(500).send(
-        {
-          message: "Internal server error"
-        }
-      );
-      // More informative error message
+      
+      res.status(404).send({ Message: "item not found!" });
+      console.log(`Item not found for Sku: ${S}`);
+      
+    } catch(error) {
+      console.error("Error fetching item for cart:", error);
+      res.status(500).send({ Message: "Internal server error." });
     }
   }
 );
+
+// 4. GET MY ORDERS
+app.post(
+  "/myordersget",
+  async(req, res) => {
+    const { token } = req.body;
+
+    if (!token) return res.status(401).send({ message: "Authentication token required." });
+
+    const email = extractEmailFromToken(token);
+    if (!email) return res.status(401).send({ message: "Invalid or expired token." });
+
+    try {
+      // Query DashBoardModel using the extracted email
+      const orders = await DashBoardModel.find({ "Costumer Email": email });
+      
+      res.send({
+          Orders: orders,
+          message: true // True even if the list is empty
+      });
+    } catch(error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).send({ message: false, error: "Internal server error" });
+    }
+  }
+);
+
+
+// 5. UPDATE CART (e.g., removing items)
 app.post(
   "/cartUpdate",
   async(req, res) => {
-    const email = req.body.Email 
-    const sku = req.body.Arr 
+    const { token, Arr: skuArray } = req.body; // skuArray is the new list of SKUs
+
+    if (!token) return res.status(401).send({ message: "Authentication token required." });
+
+    const email = extractEmailFromToken(token);
+    if (!email) return res.status(401).send({ message: "Invalid or expired token." });
+
+    if (!Array.isArray(skuArray)) return res.status(400).send({ message: "Arr must be an array of SKUs." });
+
     try {
       await cartModel.updateOne(
-        {
-          Email: email
-        },
-        {
-          $set: {
-            Skus: sku
-          }
-        }
+        { Email: email },
+        { $set: { Skus: skuArray } }
       );
-    }
-    catch(error) {
-      console.log(error)
+      res.send({ message: "Cart updated successfully." });
+    } catch(error) {
+      console.error("Error updating cart:", error);
+      res.status(500).send({ message: "Internal server error." });
     }
   }
-)
+);
 //============================================================================================================================================================================================
 //#SHOERACK - ROUTING.
 app.get(
