@@ -200,6 +200,9 @@ app.post('/getS', async (req, res) => {
 
 });
 
+app.get("/new",(req,res)=>{
+  res.status(200);
+})
 
 
 app.post('/sofaimg', async (req, res) => {
