@@ -58,6 +58,7 @@ import productUrl from "./dbModels/productUrl.js";
 //middle ware.
 const app = express();
 app.use(cors());
+app.options('*', cors());
 app.use(express.json());
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
