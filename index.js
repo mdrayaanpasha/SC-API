@@ -13,8 +13,7 @@ import {
   ppid
 }
 from "process";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+
 import mongoose from "mongoose";
 import {
   Server
@@ -547,6 +546,8 @@ app.post(
     }
   }
 )
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 app.post("/register", async (req, res) => {
   try {
