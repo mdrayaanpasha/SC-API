@@ -9,51 +9,17 @@ import {
 from 'url';
 import fs from "fs"
 import nodemailer from "nodemailer"
-import {
-  ppid
-}
-from "process";
+
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
-import {
-  Server
-}
-from "http";
+
 import dotenv from 'dotenv';
-dotenv.config();
-//Mongo DB Config.
-const MONGO_URI = process.env.MONGO_URI;
 
-const PORT = process.env.PORT;
-// --- Function to Start the Server ---
-const startServer = async () => {
-  try {
-    // 1. Connect to the database and WAIT for it to succeed
-    await mongoose.connect(MONGO_URI);
-    console.log("Successfully connected to the database! ✅");
+import startDB from "./services/db.service.js";
+const PORT = process.env.PORT
 
-    // 2. Only after a successful connection, start the Express server
-    app.listen(PORT, () => {
-      console.log(`Server is running on port: ${PORT}`);
-    });
-  } catch (error) {
-    console.error("❌ Failed to connect to the database:", error);
-    process.exit(1); // Exit the app if the connection fails
-  }
-};
 
-// --- Call the function to start everything ---
-startServer();
 
-//mongoDB models import.
-import SofaModel from "./dbModels/sofa.js";
-import userModel from "./dbModels/user.js";
-import cartModel from "./dbModels/cart.js";
-import ShoeRackModel from "./dbModels/shoeRacks.js";
-import DashBoardModel from "./dbModels/Dashboard.js";
-import CancelModel from "./dbModels/cancelModel.js";
-import productUrl from "./dbModels/productUrl.js";
 
 //middle ware.
 const app = express();
@@ -61,8 +27,20 @@ app.use(cors());
 app.options('*', cors());
 app.use(express.json());
 dotenv.config();
+
+// --- Call the function to start everything ---
+app.listen(PORT,async ()=>{
+  try {
+    await startDB();
+    console.log(`server running on: http://localhost:${PORT}`,)
+    
+  } catch (error) {
+    console.log(error)
+  }
+})
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 app.use(
   '/public',
   express.static(
@@ -85,6 +63,9 @@ const upload = multer(
     storage: storage
   }
 );
+
+
+
 /*                                        ROUTING BITCHES!
                               So please note that you can find the apis by thier names using #<name> ps:no need of <>      */
 //============================================================================================================================================================================================
@@ -110,14 +91,28 @@ app.get(
     }
   }
 )
+
+
 //================================================================================================================================================================================================================================
 // #SOFA - ROUTING.
+
 app.get(
   '/getSofas',
   async(req, res) => {
     try {
       // Call function to get sofas from database
-      const sofas = await SofaModel.find();
+        const sofas = await SofaModel.find(
+        {},
+        {
+            Sku: 1,
+            "Sub Category": 1,
+            Title: 1,
+            "Mrp ": 1,
+            "Selling Price ": 1,
+            _id: 0
+        }
+    );
+
       res.send(
         {
           S: sofas,
@@ -135,6 +130,8 @@ app.get(
     }
   }
 );
+
+
 /*
 this API is to get all sofa images!!
 */
@@ -160,12 +157,13 @@ app.post('/getS', async (req, res) => {
 
     const [sofaDetails, imageDoc] = await Promise.all([
 
-      SofaModel.findOne({ Sku: sku }),
+      SofaModel.findOne({ Sku: sku },{ Description: 0 } ),
 
       productUrl.findOne({ "Product ID": sku }) // Correctly query using 'productId'
 
     ]);
   
+    console.log(imageDoc)
 
 
     // 3. Check if we found a product
@@ -237,6 +235,7 @@ app.post('/sofaimg', async (req, res) => {
 });
 
 //this route is the one where we take data for products below the product order page.
+
 app.post(
   "/otherGetData",
   async(req, res) => {
@@ -244,21 +243,28 @@ app.post(
     const cat = req.body.Product;
     try {
       if(cat === "Sofa") {
-        const D = await SofaModel.aggregate(
-          [
+     const D = await SofaModel.aggregate([
             {
-              $sample: {
-                size: 20
-              }
+                $sample: { size: 20 }
             },
-          ]
-        );
-        res.send(
-          {
-            Data: D,
-            message: "ok"
-          }
-        )
+            {
+                $project: {
+                    _id: 0,
+                    Sku: 1,
+                    Title: 1,
+                    "Sub Category": 1,
+                    "Selling Price ": 1,
+                    "Mrp ": 1
+                }
+            }
+        ]);
+
+res.send({
+    Data: D,
+    message: "ok"
+});
+
+      
       }
       else if(cat === "SR") {
         const D = await ShoeRackModel.aggregate(
@@ -268,6 +274,16 @@ app.post(
                 size: 20
               }
             },
+             {
+                $project: {
+                    _id: 0,
+                    Sku: 1,
+                    Title: 1,
+                    "Sub Category": 1,
+                    "Selling Price ": 1,
+                    "Mrp ": 1
+                }
+            }
           ]
         );
         res.send(
@@ -288,6 +304,8 @@ app.post(
     }
   }
 )
+
+
 app.get(
   "/3seatget",
   async(req, res) => {
@@ -935,7 +953,14 @@ app.get(
   "/ShoeRacksget",
   async(req, res) => {
     try {
-      const Data = await ShoeRackModel.find({});
+      const Data = await ShoeRackModel.find({},{
+            Sku: 1,
+            "Sub Category": 1,
+            Title: 1,
+            "Mrp ": 1,
+            "Selling Price ": 1,
+            _id: 0
+        });
       res.send(
         {
           message: "ok",
@@ -965,7 +990,7 @@ app.post('/SRget', async (req, res) => {
 
     // 2. Fetch ShoeRack details and optionally a URL doc (if you have one)
     const [shoeDetails, imageDoc] = await Promise.all([
-      ShoeRackModel.findOne({ Sku: sku }),
+      ShoeRackModel.findOne({ Sku: sku },{Description:0}),
       productUrl.findOne({ "Product ID": sku }) // optional collection for URLs
     ]);
 
@@ -974,25 +999,6 @@ app.post('/SRget', async (req, res) => {
       return res.status(404).send({ message: `No data found for SKU: ${sku}` });
     }
 
-    // 4. Read image files from folder
-    const folderPath = path.join(__dirname, `public/img/SR/${shoeDetails["Sub Category"]}/${sku}`);
-    let imageFiles = [];
-    try {
-      const files = await fs.readdir(folderPath);
-      // Only include actual files (ignore subfolders)
-      imageFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = path.join(folderPath, file);
-          const stat = await fs.stat(filePath);
-          return stat.isFile() ? file : null;
-        })
-      );
-      // Remove nulls
-      imageFiles = imageFiles.filter(Boolean);
-    } catch (err) {
-      console.warn("Error reading image folder:", err);
-      imageFiles = [];
-    }
 
 
 
@@ -1000,7 +1006,7 @@ app.post('/SRget', async (req, res) => {
     res.status(200).send({
       message: "ok",
       shoe: shoeDetails,
-      images: imageDoc ? imageDoc["Image URLs"] : imageUrls // prefer DB URLs if exist
+      images: imageDoc["Image URLs"]  // prefer DB URLs if exist
     });
 
   } catch (error) {
