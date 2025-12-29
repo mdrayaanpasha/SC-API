@@ -81,15 +81,19 @@ const startDB = async () => {
 };
 // --- Call the function to start everything ---
 const PORT = process.env.PORT;
-app.listen(PORT,async ()=>{
+
+(async () => {
   try {
-    await startDB();
-    console.log(`server running on: http://localhost:${PORT}`,)
-    
-  } catch (error) {
-    console.log(error)
+    await startDB(); // CONNECT FIRST
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Server failed to start:", err);
+    process.exit(1);
   }
-})
+})();
+
 
 
 
