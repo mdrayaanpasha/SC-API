@@ -64,6 +64,13 @@ const upload = multer(
   }
 );
 
+import SofaModel from "../dbModels/sofa.js";
+import userModel from "../dbModels/user.js";
+import cartModel from "../dbModels/cart.js";
+import ShoeRackModel from "../dbModels/shoeRacks.js";
+import DashBoardModel from "../dbModels/Dashboard.js";
+import CancelModel from "../dbModels/cancelModel.js";
+import productUrl from "../dbModels/productUrl.js";
 
 
 /*                                        ROUTING BITCHES!
