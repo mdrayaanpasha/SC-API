@@ -15,8 +15,7 @@ import jwt from "jsonwebtoken";
 
 import dotenv from 'dotenv';
 
-import startDB from "./services/db.service.js";
-const PORT = process.env.PORT
+
 
 
 
@@ -28,16 +27,7 @@ app.options('*', cors());
 app.use(express.json());
 dotenv.config();
 
-// --- Call the function to start everything ---
-app.listen(PORT,async ()=>{
-  try {
-    await startDB();
-    console.log(`server running on: http://localhost:${PORT}`,)
-    
-  } catch (error) {
-    console.log(error)
-  }
-})
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -71,6 +61,36 @@ import ShoeRackModel from "./dbModels/shoeRacks.js";
 import DashBoardModel from "./dbModels/Dashboard.js";
 import CancelModel from "./dbModels/cancelModel.js";
 import productUrl from "./dbModels/productUrl.js";
+
+
+import mongoose from "mongoose";
+
+const MONGO_URI = process.env.MONGO_URI;
+
+const startDB = async () => {
+  try {
+    // 1. Connect to the database and WAIT for it to succeed
+    await mongoose.connect(MONGO_URI);
+    console.log("Successfully connected to the database! ✅");
+
+
+  } catch (error) {
+    console.error("❌ Failed to connect to the database:", error);
+    process.exit(1); // Exit the app if the connection fails
+  }
+};
+// --- Call the function to start everything ---
+const PORT = process.env.PORT;
+app.listen(PORT,async ()=>{
+  try {
+    await startDB();
+    console.log(`server running on: http://localhost:${PORT}`,)
+    
+  } catch (error) {
+    console.log(error)
+  }
+})
+
 
 
 /*                                        ROUTING BITCHES!
